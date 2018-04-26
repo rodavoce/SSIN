@@ -5,6 +5,9 @@ import (
 	"crypto/sha256"
 	"strconv"
 	"time"
+	"io/ioutil"
+	"fmt"
+	"os"
 )
 
 // Block struct to  represent nodes in the BlockChain
@@ -16,7 +19,7 @@ type Block struct {
 }
 
 
-// SetHash calculattes and sets block hash
+// SetHash calculates and sets block hash
 func (b *Block) SetHash() {
 	timestamp := []byte(strconv.FormatInt(b.Timestamp, 10))
 	headers := bytes.Join([][]byte{b.PrevBlockHash, b.Data, timestamp},[]byte {})
@@ -36,4 +39,21 @@ func NewBlock(data string, prevBlockHash []byte) *Block {
 //NewGenesisBlock create and return a genesis block
 func NewGenesisBlock() *Block {
 	return NewBlock("First Block on Chain", []byte {})
+}
+
+func getBlockData(filename string, prevBlockHash []byte) *Block{
+    databytes, err := ioutil.ReadFile(filename)
+    if err != nil {
+        fmt.Print(err)
+	}
+	file, err := os.Stat(filename)
+
+    if err != nil {
+        fmt.Println(err)
+	}
+	
+	timestamp := file.ModTime()
+	
+	block := &Block{timestamp.Unix(), databytes, prevBlockHash, []byte{}}
+	return block;
 }
