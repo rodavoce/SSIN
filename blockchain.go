@@ -24,8 +24,8 @@ type BlockchainIterator struct {
 	db          *bolt.DB
 }
 
-// AddBlock saves provided data as a block in the blockchain
-func (bc *Blockchain) AddBlock(transactions []*Transaction) {
+// Mines a new block with the provided transactions
+func (bc *Blockchain) MineBlock(transactions []*Transaction) {
 	var lastHash []byte
 
 	err := bc.db.View(func(tx *bolt.Tx) error {
@@ -132,6 +132,22 @@ func NewBlockchain(address string) *Blockchain {
 	bc := Blockchain{tip, db}
 
 	return &bc
+}
+
+// FindUTXO finds and returns all unspent transaction outputs
+func (bc *Blockchain) FindUTXO(address string) []TXOutput {
+	var UTXOs []TXOutput
+	unspentTransactions := bc.FindUnspentTransactions(address)
+
+	for _, tx := range unspentTransactions {
+		for _, out := range tx.Vout {
+			if out.CanBeUnlockedWith(address) {
+				UTXOs = append(UTXOs, out)
+			}
+		}
+	}
+
+	return UTXOs
 }
 
 func (bc *Blockchain) FindUnspentTransactions(address string) []Transaction {
