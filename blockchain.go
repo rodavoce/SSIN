@@ -10,7 +10,7 @@ import (
 
 const dbFile = "blockchain.db"
 const blocksBucket = "blocks"
-const genesisCoinbaseData = "This a security project about blockchains"
+const genesisCoinbaseData = "This is a security project about blockchains"
 
 // Blockchain keeps a sequence of Blocks
 type Blockchain struct {
