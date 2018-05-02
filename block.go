@@ -2,20 +2,18 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/gob"
-	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
 	"time"
 )
 
 // Block struct to  represent nodes in the BlockChain
 type Block struct {
-	Timestamp     int64  //Current timestamp
-	Data          []byte //Actual value information containing in the block
-	PrevBlockHash []byte //Stores the hash of the previous block
-	Hash          []byte //Hash of the block
+	Timestamp     int64          //Current timestamp
+	Transactions  []*Transaction //Actual value information containing in the block
+	PrevBlockHash []byte         //Stores the hash of the previous block
+	Hash          []byte         //Hash of the block
 	Nonce         int
 }
 
@@ -46,8 +44,8 @@ func DeserializeBlock(d []byte) *Block {
 }
 
 // NewBlock creates and returns Block
-func NewBlock(data string, prevBlockHash []byte) *Block {
-	block := &Block{time.Now().Unix(), []byte(data), prevBlockHash, []byte{}, 0}
+func NewBlock(transactions []*Transaction, prevBlockHash []byte) *Block {
+	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0}
 
 	pow := NewProofOfWork(block)
 	nonce, hash := pow.Run()
@@ -59,10 +57,23 @@ func NewBlock(data string, prevBlockHash []byte) *Block {
 }
 
 //NewGenesisBlock create and return a genesis block
-func NewGenesisBlock() *Block {
-	return NewBlock("Genisis Block", []byte{})
+func NewGenesisBlock(coinbase *Transaction) *Block {
+	return NewBlock([]*Transaction{coinbase}, []byte{})
 }
 
+func (b *Block) HashTransactions() []byte {
+	var txHashes [][]byte
+	var txHash [32]byte
+
+	for _, tx := range b.Transactions {
+		txHashes = append(txHashes, tx.ID)
+	}
+	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
+
+	return txHash[:]
+}
+
+/*
 func getBlockData(filename string, prevBlockHash []byte) *Block {
 	databytes, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -79,3 +90,4 @@ func getBlockData(filename string, prevBlockHash []byte) *Block {
 	block := &Block{timestamp.Unix(), databytes, prevBlockHash, []byte{}, 0}
 	return block
 }
+*/
