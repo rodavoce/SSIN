@@ -47,7 +47,7 @@ func (cli *CLI) printChain() {
 
 func (cli *CLI) createBlockchain(address string) {
 	bc := NewBlockchain(address)
-	bc.db.Close()
+	defer bc.db.Close()
 	fmt.Println("Done!")
 }
 
