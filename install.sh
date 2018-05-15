@@ -1,0 +1,3 @@
+#!/bin/bash
+go get github.com/boltdb/bolt/...
+go get golang.org/x/crypto/ripemd160/..
