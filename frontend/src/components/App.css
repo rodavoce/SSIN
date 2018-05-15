@@ -1,0 +1,44 @@
+#sidebar {
+    background-image: url('../images/block1.jpg');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+#sidebar:before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    top: 0; bottom: 0;
+    background: rgba(0,0,0,.8);
+}
+
+#sidebar a {
+    color: white;
+    position: relative;
+    display: inline-block;
+    width: 90%;
+}
+
+#sidebar a.active {
+    background-color: rgba(0,0,0,0.5);
+    border-radius: 4px;
+}
+
+.btn-primary {
+    background-color: black;
+    border-color: black;
+}
+
+.btn-primary:active,
+.btn-primary:focus,
+.btn-primary:hover {
+    background-color: rgba(0,0,0,0.9) !important;
+    border-color: rgba(0,0,0,0.9) !important;
+    color: white;
+}
+    
+.btn-primary:active,
+.btn-primary:focus {
+    box-shadow: 0 0 0 0.2rem rgba(254, 209, 55,.5) !important;
+}
