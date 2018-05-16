@@ -3,15 +3,11 @@ import { connect } from 'react-redux';
 
 import { addMessage } from '../actions';
 
-class ImportForm extends Component {
+class Verify extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      fileName: '',
-      errors: {
-        fileName: [],
-        file: [],
-      }
+     
     }
 
     this.handleChange = this.handleChange.bind(this);
@@ -28,30 +24,12 @@ class ImportForm extends Component {
     })
   }
 
-  validateForm() {
-    let valid = true;
-    if (this.state.fileName === '') {
-      this.addError('fileName', 'This field is mandatory');
-      valid = false;
-    } else {
-      this.clearErrors('fileName');
-    }
-    if (!this.fileInput.files[0]) {
-      this.addError('file', 'This field is mandatory');
-      valid = false;
-    } else {
-      this.clearErrors('file');
-    }
-    return valid;
-  }
-
   handleSubmit(event) {
     event.preventDefault();
     if (!this.validateForm()) return;
 
     let data = new FormData();
-    data.append('fileName', this.state.fileName);
-    data.append('file', this.fileInput.files[0]);
+
 
     fetch('http://localhost:4567/file/', {
       method: "POST",

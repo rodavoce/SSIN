@@ -2,8 +2,10 @@ import React, { Component } from 'react';
 import { BrowserRouter as Router, Link, NavLink, Route } from 'react-router-dom';
 
 import ImportForm from '../containers/ImportForm';
+import verify from '../containers/Verify';
 import Messages from '../containers/Messages';
 import './App.css';
+import Verify from '../containers/Verify';
 
 class App extends Component {
   render() {
@@ -21,6 +23,9 @@ class App extends Component {
             <Messages />
             <div className="container">
               <Route path='/import' component={ImportForm} />
+            </div>
+            <div className="container">
+              <Route path='/verify' component={Verify} />
             </div>
           </Main>
         </Root>
