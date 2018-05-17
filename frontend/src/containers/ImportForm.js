@@ -59,7 +59,7 @@ class ImportForm extends Component {
 		data.append('description', this.state.fileName);
 		data.append('file', this.fileInput.files[0]);
 
-		fetch(`${process.env.REACT_APP_SERVER_URL}files/`, {
+		fetch(`http://localhost:3001/timestamp`, {
 			method: "POST",
 			body: data,
 		})
