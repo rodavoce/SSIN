@@ -51,7 +51,7 @@ class Verify extends Component {
         let data = new FormData();
         data.append('file', this.fileInput.files[0]);
 
-        fetch(`http://localhost:3001/verify`, {
+        fetch(`https://localhost:3001/verify`, {
             method: "POST",
             body: data,
         })

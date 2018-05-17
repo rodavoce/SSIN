@@ -45,7 +45,7 @@ class ImportForm extends Component {
 		let data = new FormData();
 		data.append('file', this.fileInput.files[0]);
 
-		fetch(`http://localhost:3001/timestamp`, {
+		fetch(`https://localhost:3001/timestamp`, {
 			method: "POST",
 			body: data,
 		})

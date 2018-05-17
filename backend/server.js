@@ -1,10 +1,24 @@
 const express = require('express');
 const app = express();
+const https = require('https');
 const port = 3001;
+const host = 'localhost';
 const busboy = require('connect-busboy');
 const fs = require('fs');
 
+//Load Certificate and private key
+const privatekey = fs.readFileSync('sslcert/server.key');
+const certificate = fs.readFileSync('sslcert/server.crt');
+const credentials = {key: privatekey, cert: certificate};
 
+const ursa = require('ursa');
+const key = ursa.createPrivateKey(privatekey);
+
+
+const crypto = require('crypto');
+
+
+//DB
 const driver = require('bigchaindb-driver');
 const alice = new driver.Ed25519Keypair();
 const conn = new driver.Connection(
@@ -14,9 +28,6 @@ const conn = new driver.Connection(
         app_key: '405c9c673ddcf8a68807dbc4c45ef5e1'
     });
 
-
-
-const crypto = require('crypto');
 
 app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
@@ -31,6 +42,16 @@ app.use(busboy({
         fileSize: 10 * 1024 * 1024 //10mb
     }
 }));
+
+//setup server
+app.listen(8080);
+const server = https.createServer(credentials, app);
+server.listen(port,host);
+console.log("https server listining on %s:%s", host, port);
+
+
+
+
 
 app.get('/' , (request, response) => {
         response.send('Server is online');
@@ -77,7 +98,7 @@ app.post('/timestamp' , (request, response) => {
                             }
                             else
                             {
-                                response.send(JSON.stringify(result)); //TODO
+                                response.send(JSON.stringify(result)); //respond with a stamp
                             }
 
                         });
@@ -97,13 +118,8 @@ app.post('/verify' , (request, response) => {
         response.send('Server is online');
     });
 
-app.listen(port, (err) =>  {
-        if(err) {
-            return console.log('maybe the port isnt avaiable');
-        }
 
-        console.log("server is listening on port " + port)
-    });
+
 
 
 const sendToDB = function () {
@@ -114,7 +130,7 @@ const sendToDB = function () {
             null,
             [ driver.Transaction.makeOutput(
                 driver.Transaction.makeEd25519Condition(alice.publicKey))],
-            alice.publicKey)
+            alice.publicKey);
         const txSigned = driver.Transaction.signTransaction(tx, alice.privateKey)
     };
 
@@ -141,7 +157,8 @@ const timestamp = function (data, callback) {
     //calculate hash(hash + timestamp)
     hashedData =  crypto.createHash('sha256').update(hashedData + now.toString()).digest("base64");
 
-    //sign with private key
+    //encrypt with private key
+    const signed = key.privateEncrypt(hashedData, 'utf8', 'base64');
 
     //store on DB
 
@@ -151,9 +168,10 @@ const timestamp = function (data, callback) {
 
     console.log("Timestamp: " + now);
     console.log("hash + timestamp: " + hashedData);
+    console.log("encrypt with private key: " + signed);
 
     const response = {
-        hash: hashedData,
+        hash: signed,
         time: now
     };
 
