@@ -7,16 +7,13 @@ class ImportForm extends Component {
 	constructor(props) {
 		super(props);
 		this.state = {
-			fileName: '',
 			errors: {
-				fileName: [],
 				file: [],
 			}
 		}
 
 		this.handleChange = this.handleChange.bind(this);
 		this.handleSubmit = this.handleSubmit.bind(this);
-		this.hasExtension = this.hasExtension.bind(this);
 	}
 
 	handleChange(event) {
@@ -29,20 +26,10 @@ class ImportForm extends Component {
 		})
 	}
 
-	hasExtension(inputID, exts) {
-		const fileName = document.getElementById(inputID).files[0].name;
-		return (new RegExp('(' + exts.join('|').replace(/\./g, '\\.') + ')$', 'i')).test(fileName);
-	}
-
 	validateForm() {
-		this.clearErrors('fileName');
 		this.clearErrors('file');
 
 		let valid = true;
-		if (this.state.fileName === '') {
-			this.addError('fileName', 'This field is mandatory');
-			valid = false;
-		}
 		if (!this.fileInput.files[0]) {
 			this.addError('file', 'This field is mandatory');
 			valid = false;
@@ -56,7 +43,6 @@ class ImportForm extends Component {
 		if (!this.validateForm()) return;
 
 		let data = new FormData();
-		data.append('description', this.state.fileName);
 		data.append('file', this.fileInput.files[0]);
 
 		fetch(`http://localhost:3001/timestamp`, {
@@ -107,12 +93,6 @@ class ImportForm extends Component {
 			<div>
 				<h3>Import a file</h3>
 				<form method="post" encType="multipart/form-data" >
-					<div className="form-group" >
-						<input className="form-control" type="text" name="fileName" placeholder="fileName" onChange={this.handleChange} />
-						{this.state.errors['fileName'].map((error, i) =>
-							<small key={i} className="text-danger">{error}</small>
-						)}
-					</div>
 					<div className="form-group" >
 						<input className="form-control-file" type="file" name="file" id="file" ref={input => this.fileInput = input} required />
 						{this.state.errors['file'].map((error, i) =>

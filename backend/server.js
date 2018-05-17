@@ -28,17 +28,15 @@ app.use(function (req, res, next) {
 app.use(busboy({
     limits: {
         files: 1,
-        fileSize: 10 * 1024 * 1024
+        fileSize: 10 * 1024 * 1024 //10mb
     }
 }));
 
-app
-    .get('/' , (request, response) => {
+app.get('/' , (request, response) => {
         response.send('Server is online');
     });
 
-app
-    .post('/timestamp' , (request, response) => {
+app.post('/timestamp' , (request, response) => {
 
         let fstream;
 
@@ -46,11 +44,13 @@ app
         request.busboy.on('file', function (fieldname, file, filename) {
             console.log("Uploading: " + filename );
 
-            fstream = fs.createWriteStream("./"+filename);
+            const localPath = "./tempFileStorage/"+filename;
 
+            fstream = fs.createWriteStream(localPath);
 
             file.on('limit', function () {
                 response.status(403).send("File is too big");
+                fstream.close();
             });
 
             file.on('data', function (chunk) {
@@ -62,18 +62,27 @@ app
             });
 
             fstream.on('close', function () {
-                timestamp("qweqweqweqeq", function (err, result) {  //TODO hardcoded
+
+                const readFile = fs.readFile(localPath, function (err, data) {
                     if(err)
                     {
-
-                        response.status(500).send("Internal server error");
+                        response.status(500).send("error while loading file from local storage")
                     }
                     else
                     {
-                        response.send(result);
+                        timestamp(data, function (err, result) {
+                            if(err)
+                            {
+                                response.status(500).send("Internal server error");
+                            }
+                            else
+                            {
+                                response.send(JSON.stringify(result)); //TODO
+                            }
+
+                        });
                     }
                 });
-
             });
 
             fstream.on('error', function () {
@@ -83,15 +92,12 @@ app
         })
     });
 
-app
-    .post('/verify' , (request, response) => {
+app.post('/verify' , (request, response) => {
         //TODO
         response.send('Server is online');
     });
 
-
-app
-    .listen(port, (err) =>  {
+app.listen(port, (err) =>  {
         if(err) {
             return console.log('maybe the port isnt avaiable');
         }
@@ -124,14 +130,16 @@ const searchOnDB = function () {
 
 
 
-const timestamp = function (hash, callback) {
+const timestamp = function (data, callback) {
     const moment = require('moment');
-
     //getcurrentTimestamp
     const now = moment();
+
+    //hash file content
+    let hashedData =  crypto.createHash('sha256').update(data).digest("base64");
+
     //calculate hash(hash + timestamp)
-    const data = hash + now.toString();
-    const hashedData =  crypto.createHash('sha256').update(hash).digest("base64");
+    hashedData =  crypto.createHash('sha256').update(hashedData + now.toString()).digest("base64");
 
     //sign with private key
 
@@ -140,14 +148,16 @@ const timestamp = function (hash, callback) {
     //sendToDB()
 
 
-    //send hash + timestamp
 
     console.log("Timestamp: " + now);
     console.log("hash + timestamp: " + hashedData);
 
+    const response = {
+        hash: hashedData,
+        time: now
+    };
 
-
-    callback(null,hashedData);
+    return callback(null, response);
 };
 
 
