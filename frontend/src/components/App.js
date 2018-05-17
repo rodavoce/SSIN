@@ -36,8 +36,8 @@ class App extends Component {
 
 const PlanMenu = (props) => (
   <div>
-    <SidebarLink to='/import'><Icon icon="fa-upload" />Import</SidebarLink>
-    <SidebarLink to='/verify'><Icon icon="fa-check" />verify</SidebarLink>
+    <SidebarLink to='/import'><Icon icon="fa-upload" /> Timestamp File</SidebarLink>
+    <SidebarLink to='/verify'><Icon icon="fa-check" /> Verify File</SidebarLink>
   </div>
 )
 
