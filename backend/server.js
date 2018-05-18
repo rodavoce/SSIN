@@ -24,8 +24,30 @@ const path = require('path');
 const mkdirpAsync = PromiseA.promisify(require('mkdirp'));
 const pathname = 'serverkeys'
 
+var privkeyServer;
+var pubkeyServer;
+
+const startkeys  = function () {
+    privkeyServer = ursa.createPrivateKey(fs.readFileSync('./'+ pathname +'/privkey.pem'));
+    pubkeyServer = ursa.createPublicKey(fs.readFileSync('./'+ pathname +'/pubkey.pem'));
+
+    var msg = "IT’S A SECRET TO EVERYBODY.";
+    var sig;
+    var enc;
+    enc = pubkeyServer.encrypt(msg, 'utf8', 'base64');
+    sig = privkeyServer.hashAndSign('sha256', msg, 'utf8', 'base64'); //é este que vamos querer fazer aqui
+    console.log('encrypted', enc, '\n');
+    console.log('signed', sig, '\n');
+
+     //apply public key over signature
+     //should match the received one
+ };
+
+
+
 if (fs.existsSync(pathname)){
         console.log('keys were previously created');
+        startkeys();
     } 
     else  {
     PromiseA.all([
@@ -33,6 +55,7 @@ if (fs.existsSync(pathname)){
       ]).then(function (keys) {
         console.log('generated %d keypairs', keys.length);
       }); 
+      startkeys();
 }
 
 function setkey(pathname) {
@@ -248,6 +271,7 @@ const verifyTimestamp  = function (signature, data, callback) {
 
 
 };
+
 
 
 
