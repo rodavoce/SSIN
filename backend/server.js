@@ -4,7 +4,8 @@ const https = require('https');
 const port = 3001;
 const host = 'localhost';
 const busboy = require('connect-busboy');
-const fs = require('fs');
+const PromiseA = require('bluebird').Promise;
+const fs = PromiseA.promisifyAll(require('fs'));
 
 //Load Certificate and private key
 const privatekey = fs.readFileSync('sslcert/server.key');
@@ -17,6 +18,39 @@ const key = ursa.createPrivateKey(privatekey);
 
 const crypto = require('crypto');
 
+
+//Bruno
+const path = require('path');
+const mkdirpAsync = PromiseA.promisify(require('mkdirp'));
+const pathname = 'serverkeys'
+
+if (fs.existsSync(pathname)){
+        console.log('keys were previously created');
+    } 
+    else  {
+    PromiseA.all([
+        setkey('serverkeys')    
+      ]).then(function (keys) {
+        console.log('generated %d keypairs', keys.length);
+      }); 
+}
+
+function setkey(pathname) {
+        const key = ursa.generatePrivateKey(1024, 65537);
+        const privpem = key.toPrivatePem();
+        const pubpem = key.toPublicPem();
+        const privkey = path.join(pathname, 'privkey.pem');
+        const pubkey = path.join(pathname, 'pubkey.pem');;
+    
+            return mkdirpAsync(pathname).then(function () {
+                return PromiseA.all([
+                  fs.writeFileAsync(privkey, privpem, 'ascii')
+                , fs.writeFileAsync(pubkey, pubpem, 'ascii')
+                ]);
+              }).then(function () {
+                return key;
+              });
+      };
 
 //DB
 const driver = require('bigchaindb-driver');

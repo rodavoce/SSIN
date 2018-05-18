@@ -11,11 +11,14 @@
   "license": "ISC",
   "dependencies": {
     "bigchaindb-driver": "^4.0.1",
+    "bluebird": "^3.5.1",
     "connect-busboy": "0.0.2",
     "crypto": "^1.0.1",
     "express": "^4.16.3",
     "fs": "0.0.1-security",
+    "mkdirp": "^0.5.1",
     "moment": "^2.22.1",
-    "nodemon": "^1.17.4"
+    "nodemon": "^1.17.4",
+    "ursa": "^0.9.4"
   }
 }
