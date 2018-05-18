@@ -12,7 +12,7 @@ const certificate = fs.readFileSync('sslcert/server.crt');
 const credentials = {key: privatekey, cert: certificate};
 
 const ursa = require('ursa');
-const key = ursa.createPrivateKey(privatekey);
+const key = ursa.createPrivateKey(privatekey); 
 
 
 const crypto = require('crypto');
@@ -53,79 +53,79 @@ console.log("https server listining on %s:%s", host, port);
 
 
 app.get('/' , (request, response) => {
-        response.send('Server is online');
-    });
+    response.send('Server is online');
+});
 
 app.post('/timestamp' , (request, response) => {
 
-        let fstream;
+    let fstream;
 
-        request.pipe(request.busboy);
-        request.busboy.on('file', function (fieldname, file, filename) {
-            console.log("Uploading: " + filename );
+    request.pipe(request.busboy);
+    request.busboy.on('file', function (fieldname, file, filename) {
+        console.log("Uploading: " + filename );
 
-            const localPath = "./tempFileStorage/"+filename;
+        const localPath = "./tempFileStorage/"+filename;
 
-            fstream = fs.createWriteStream(localPath);
+        fstream = fs.createWriteStream(localPath);
 
-            file.on('limit', function () {
-                response.status(403).send("File is too big");
-                fstream.close();
+        file.on('limit', function () {
+            response.status(403).send("File is too big");
+            fstream.close();
+        });
+
+        file.on('data', function (chunk) {
+            fstream.write(chunk);
+        });
+
+        file.on('end', function () {
+            fstream.close();
+        });
+
+        fstream.on('close', function () {
+
+            const readFile = fs.readFile(localPath, function (err, data) {
+                if(err)
+                {
+                    response.status(500).send("error while loading file from local storage")
+                }
+                else
+                {
+                    timestamp(data, function (err, result) {
+                        if(err)
+                        {
+                            response.status(500).send("Internal server error");
+                        }
+                        else
+                        {
+                            response.send(JSON.stringify({ hash: result })); //respond with a stamp
+                        }
+
+                    });
+                }
             });
+        });
 
-            file.on('data', function (chunk) {
-                fstream.write(chunk);
-            });
+        fstream.on('error', function () {
+            response.status(500).send("piping file error");
+        });
 
-            file.on('end', function () {
-                fstream.close();
-            });
-
-            fstream.on('close', function () {
-
-                const readFile = fs.readFile(localPath, function (err, data) {
-                    if(err)
-                    {
-                        response.status(500).send("error while loading file from local storage")
-                    }
-                    else
-                    {
-                        timestamp(data, function (err, result) {
-                            if(err)
-                            {
-                                response.status(500).send("Internal server error");
-                            }
-                            else
-                            {
-                                response.send(JSON.stringify(result)); //respond with a stamp
-                            }
-
-                        });
-                    }
-                });
-            });
-
-            fstream.on('error', function () {
-                response.status(500).send("piping file error");
-            });
-
-        })
-    });
+    })
+});
 
 app.post('/verify' , (request, response) => {
-        //TODO
-        response.send('Server is online');
-    });
+    //TODO
+    response.send('Server is online');
+});
 
 
 
 
 
-const sendToDB = function (hash, timestamp) {
+const sendToDB = function (hash) {
 
     const pair = new driver.Ed25519Keypair();
     const tx = driver.Transaction.makeCreateTransaction(
-        { hash: hash, timestamp: timestamp },
+        { hash: hash },
         null,
         [ driver.Transaction.makeOutput(
             driver.Transaction.makeEd25519Condition(pair.publicKey))],
@@ -137,9 +137,9 @@ const sendToDB = function (hash, timestamp) {
 
 };
 
-const searchOnDB = function (data) {
+const searchOnDB = function (data, callback) {
     conn.searchAssets(data)
-        .then(assets => console.log('Found assets with serial number Bicycle Inc.:', assets));
+        .then(assets => callback(assets));
 };
 
 
@@ -155,37 +155,64 @@ const timestamp = function (data, callback) {
     //calculate hash(hash + timestamp)
     hashedData =  crypto.createHash('sha256').update(hashedData + now.toString()).digest("base64");
 
+    const stamp = {
+        hash: hashedData,
+        timestamp: now
+    };
+
     //encrypt with private key
-    const signed = key.privateEncrypt(hashedData, 'utf8', 'base64');
+    const signed = key.privateEncrypt(JSON.stringify(stamp), 'utf8', 'base64');
 
     //store on DB
 
-    sendToDB(signed, now);
-
-    searchOnDB(signed);
-
-
+    sendToDB(signed);
 
     console.log("Timestamp: " + now);
     console.log("hash + timestamp: " + hashedData);
     console.log("encrypt with private key: " + signed);
 
-    const response = {
-        hash: signed,
-        time: now
-    };
 
-    return callback(null, response);
+    return callback(null, signed);
 };
 
 
-const verifyTimestamp  = function (signature) {
+const verifyTimestamp  = function (signature, data, callback) {
+
+
     //apply public key over signature
+    const signed = " "; // publickey.decrypt(signature, 'utf8' , 'base64');
 
-    //checkStored signature ( check date )
+    //hash file content
+    let hashedData =  crypto.createHash('sha256').update(data).digest("base64");
 
-    //should match the received one
-    //send response accordly
+
+
+
+
+        searchOnDB(signature, function (results) {
+            if(results.length < 1)
+            {
+                //forged stamp
+            }
+            else
+            {
+                const timestamp = results[0]; //TODO need publickey
+                //calculate hash(hash + timestamp)
+                hashedData =  crypto.createHash('sha256').update(hashedData + timestamp).digest("base64");
+
+
+                if(hashedData === signed)
+                {
+                    //ok
+                }
+                else
+                {
+                    // modified file?
+                }
+            }
+        })
+
+
 };
 
 
