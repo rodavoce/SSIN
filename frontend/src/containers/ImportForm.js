@@ -34,7 +34,7 @@ class ImportForm extends Component {
 			this.addError('file', 'This field is mandatory');
 			valid = false;
 		}
-		
+
 		return valid;
 	}
 
@@ -49,14 +49,26 @@ class ImportForm extends Component {
 			method: "POST",
 			body: data,
 		})
-			.then(res => {
-				if (res.ok) {
+			.then(response => {
+                if (response.ok) {
+                    return response.json()
+                }
+                else {
+                    this.props.dispatch(addMessage('Error importing file', 'danger'));
+                    throw new Error();
+                }
+
+			})
+            .then(res => {
 					this.props.dispatch(addMessage('File imported successfully', 'success'));
-				} else {
-					this.props.dispatch(addMessage('Error importing file', 'danger'));
-				}
+					let blob = new Blob([JSON.stringify(res)], {type: "application/json"});
+					let link = document.createElement('a');
+					link.href = window.URL.createObjectURL(blob);
+					link.download = this.fileInput.files[0].name + "." + "stamp";
+					link.click();
 			})
 			.catch(err => {
+				console.log(err);
 				this.props.dispatch(addMessage('Error importing file', 'danger'))
 			});
 	}
@@ -99,8 +111,9 @@ class ImportForm extends Component {
 							<small key={i} className="text-danger">{error}</small>
 						)}
 					</div>
-					<input className="btn btn-primary" type="submit" onClick={this.handleSubmit} value="Import" />
+                    <input className="btn btn-primary" type="submit" onClick={this.handleSubmit} value="Import" />
 				</form>
+
 			</div>
 		)
 	}

@@ -20,7 +20,6 @@ const crypto = require('crypto');
 
 //DB
 const driver = require('bigchaindb-driver');
-const alice = new driver.Ed25519Keypair();
 const conn = new driver.Connection(
     'https://test.bigchaindb.com/api/v1/',
     {
@@ -44,7 +43,7 @@ app.use(busboy({
 }));
 
 //setup server
-app.listen(8080);
+app.listen(3002);
 const server = https.createServer(credentials, app);
 server.listen(port,host);
 console.log("https server listining on %s:%s", host, port);
@@ -122,25 +121,24 @@ app.post('/verify' , (request, response) => {
 
 
 
-const sendToDB = function () {
+const sendToDB = function (hash, timestamp) {
 
-    const createTransaction = function (message) {
-        const tx = driver.Transaction.makeCreateTransaction(
-            { message: 'testmessage' },
-            null,
-            [ driver.Transaction.makeOutput(
-                driver.Transaction.makeEd25519Condition(alice.publicKey))],
-            alice.publicKey);
-        const txSigned = driver.Transaction.signTransaction(tx, alice.privateKey)
-    };
+    const pair = new driver.Ed25519Keypair();
+    const tx = driver.Transaction.makeCreateTransaction(
+        { hash: hash, timestamp: timestamp },
+        null,
+        [ driver.Transaction.makeOutput(
+            driver.Transaction.makeEd25519Condition(pair.publicKey))],
+        pair.publicKey)
+    const txSigned = driver.Transaction.signTransaction(tx, pair.privateKey)
+    conn.postTransactionCommit(txSigned);
 
-    const sendTransaction = function (txSigned) {
-        conn.postTransactionCommit(txSigned)
-    };
+    console.log(txSigned.id);
+
 };
 
-const searchOnDB = function () {
-    conn.searchAssets('testmessage')
+const searchOnDB = function (data) {
+    conn.searchAssets(data)
         .then(assets => console.log('Found assets with serial number Bicycle Inc.:', assets));
 };
 
@@ -162,7 +160,9 @@ const timestamp = function (data, callback) {
 
     //store on DB
 
-    //sendToDB()
+    sendToDB(signed, now);
+
+    searchOnDB(signed);
 
 
 
