@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "async": "^2.6.0",
     "bigchaindb-driver": "^4.0.1",
     "bluebird": "^3.5.1",
     "connect-busboy": "0.0.2",

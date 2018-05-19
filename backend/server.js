@@ -6,6 +6,7 @@ const host = 'localhost';
 const busboy = require('connect-busboy');
 const PromiseA = require('bluebird').Promise;
 const fs = PromiseA.promisifyAll(require('fs'));
+const async = require('async');
 
 //Load Certificate and private key
 const privatekey = fs.readFileSync('sslcert/server.key');
@@ -13,67 +14,67 @@ const certificate = fs.readFileSync('sslcert/server.crt');
 const credentials = {key: privatekey, cert: certificate};
 
 const ursa = require('ursa');
-const key = ursa.createPrivateKey(privatekey); 
+
 
 
 const crypto = require('crypto');
 
 
-//Bruno
 const path = require('path');
 const mkdirpAsync = PromiseA.promisify(require('mkdirp'));
-const pathname = 'serverkeys'
+const pathname = 'serverkeys';
 
-var privkeyServer;
-var pubkeyServer;
+let privkeyServer;
+let pubkeyServer;
 
 const startkeys  = function () {
     privkeyServer = ursa.createPrivateKey(fs.readFileSync('./'+ pathname +'/privkey.pem'));
     pubkeyServer = ursa.createPublicKey(fs.readFileSync('./'+ pathname +'/pubkey.pem'));
 
-    var msg = "IT’S A SECRET TO EVERYBODY.";
-    var sig;
-    var enc;
-    enc = pubkeyServer.encrypt(msg, 'utf8', 'base64');
-    sig = privkeyServer.hashAndSign('sha256', msg, 'utf8', 'base64'); //é este que vamos querer fazer aqui
-    console.log('encrypted', enc, '\n');
-    console.log('signed', sig, '\n');
 
-     //apply public key over signature
-     //should match the received one
- };
+    //test
+
+    const msg = "test";
+
+    const test = privkeyServer.privateEncrypt(msg, 'utf8', 'base64');
+    const test2= pubkeyServer.publicDecrypt(test,'base64','utf8');
+
+
+
+
+};
 
 
 
 if (fs.existsSync(pathname)){
-        console.log('keys were previously created');
-        startkeys();
-    } 
-    else  {
+    console.log('keys were previously created');
+    startkeys();
+}
+else  {
     PromiseA.all([
-        setkey('serverkeys')    
-      ]).then(function (keys) {
+        setkey('./serverkeys/')
+    ]).then(function (keys) {
         console.log('generated %d keypairs', keys.length);
-      }); 
-      startkeys();
+        startkeys();
+    });
 }
 
 function setkey(pathname) {
-        const key = ursa.generatePrivateKey(1024, 65537);
-        const privpem = key.toPrivatePem();
-        const pubpem = key.toPublicPem();
-        const privkey = path.join(pathname, 'privkey.pem');
-        const pubkey = path.join(pathname, 'pubkey.pem');;
-    
-            return mkdirpAsync(pathname).then(function () {
-                return PromiseA.all([
-                  fs.writeFileAsync(privkey, privpem, 'ascii')
-                , fs.writeFileAsync(pubkey, pubpem, 'ascii')
-                ]);
-              }).then(function () {
-                return key;
-              });
-      };
+    const key = ursa.generatePrivateKey(2048, 65537);
+    const privpem = key.toPrivatePem();
+    const pubpem = key.toPublicPem();
+    const privkey = path.join(pathname, 'privkey.pem');
+    const pubkey = path.join(pathname, 'pubkey.pem');;
+
+    return mkdirpAsync(pathname).then(function () {
+        return PromiseA.all([
+            fs.writeFileAsync(privkey, privpem, 'ascii')
+            , fs.writeFileAsync(pubkey, pubpem, 'ascii')
+        ]);
+    }).then(function () {
+        return key;
+    });
+};
 
 //DB
 const driver = require('bigchaindb-driver');
@@ -94,7 +95,7 @@ app.use(function (req, res, next) {
 
 app.use(busboy({
     limits: {
-        files: 1,
+        files: 2,
         fileSize: 10 * 1024 * 1024 //10mb
     }
 }));
@@ -140,7 +141,7 @@ app.post('/timestamp' , (request, response) => {
 
         fstream.on('close', function () {
 
-            const readFile = fs.readFile(localPath, function (err, data) {
+            fs.readFile(localPath, function (err, data) {
                 if(err)
                 {
                     response.status(500).send("error while loading file from local storage")
@@ -154,7 +155,7 @@ app.post('/timestamp' , (request, response) => {
                         }
                         else
                         {
-                            response.send(JSON.stringify({ hash: result })); //respond with a stamp
+                            response.send(JSON.stringify(result)); //respond with a stamp
                         }
 
                     });
@@ -170,8 +171,102 @@ app.post('/timestamp' , (request, response) => {
 });
 
 app.post('/verify' , (request, response) => {
-    //TODO
-    response.send('Server is online');
+
+
+    let fstream;
+
+    let files = [];
+
+    request.pipe(request.busboy);
+    request.busboy.on('file', function (fieldname, file, filename) {
+        console.log("Uploading: " + filename );
+
+        const localPath = "./tempFileStorage/"+filename;
+        files.push(localPath);
+
+        fstream = fs.createWriteStream(localPath);
+
+        file.on('limit', function () {
+            response.status(403).send("File is too big");
+            fstream.close();
+        });
+
+        file.on('data', function (chunk) {
+            fstream.write(chunk);
+        });
+
+        file.on('end', function () {
+            fstream.close();
+        });
+
+        fstream.on('close', function () {
+
+        });
+
+        fstream.on('error', function () {
+            response.status(500).send("piping file error");
+        });
+
+    });
+
+    request.busboy.on('finish' , function  () {
+        if(files.length === 2) {
+            let dataReceived, stamp;
+
+            async.each(
+                files,
+                function (filepath, cb) {
+
+                    if(filepath.indexOf('.stamp') > -1)
+                    {
+                        console.log("1");
+                        fs.readFile(filepath, function (err, data) {
+                            if (err) {
+                                return cb(500,"error while loading file from local storage")
+                            }
+                            else
+                            {
+                                stamp = data;
+                                cb(null);
+                            }
+                        });
+                    }
+                    else
+                    {
+                        console.log("2");
+                        fs.readFile(filepath, function (err, data) {
+                            if (err) {
+                                cb(500,"error while loading file from local storage");
+                            }
+                            else
+                            {
+                                dataReceived = data;
+                                cb(null);
+                            }
+                        });
+                    }
+                },
+                function (err, msg) {
+                    if(err){
+                        return response.status(err).send(msg);
+                    }
+                    else {
+                        if(!(dataReceived) || !(stamp))
+                            return response.status(403).send("invalid request");
+
+                        verifyTimestamp(stamp,dataReceived, function (status, msg) {
+                            return  response.status(status).send(msg);
+                        })
+                    }
+                }
+            );
+        }
+        else
+        {
+            return response.status(403).send("invalid number of files");
+        }
+    });
+
 });
 
 
@@ -211,63 +306,64 @@ const timestamp = function (data, callback) {
 
     //calculate hash(hash + timestamp)
     hashedData =  crypto.createHash('sha256').update(hashedData + now.toString()).digest("base64");
-
     const stamp = {
-        hash: hashedData,
-        timestamp: now
+        hash: privkeyServer.privateEncrypt(hashedData, 'utf8', 'base64'),
+        timestamp: now.toString(),
     };
-
-    //encrypt with private key
-    const signed = key.privateEncrypt(JSON.stringify(stamp), 'utf8', 'base64');
 
     //store on DB
 
-    sendToDB(signed);
+    sendToDB(stamp);
 
-    console.log("Timestamp: " + now);
+    console.log("Timestamp: " + now.toString());
     console.log("hash + timestamp: " + hashedData);
-    console.log("encrypt with private key: " + signed);
+    console.log("stamp : " + stamp.hash + " " + stamp.timestamp );
 
-
-    return callback(null, signed);
+    return callback(null, stamp);
 };
 
 
 const verifyTimestamp  = function (signature, data, callback) {
-
-
     //apply public key over signature
-    const signed = " "; // publickey.decrypt(signature, 'utf8' , 'base64');
+    const receivedStamp = JSON.parse(signature);
 
-    //hash file content
-    let hashedData =  crypto.createHash('sha256').update(data).digest("base64");
-
+    const unsigned = pubkeyServer.publicDecrypt(receivedStamp.hash,'base64','utf8');
 
 
+    searchOnDB(receivedStamp.hash, function (results) {
+        if(results.length < 1)
+        {
+            return callback(403, "forged stamp");
+        }
+        else
+        {
+            console.log(results[0].data.hash.hash);
+            //hash file content
+            let hashedData =  crypto.createHash('sha256').update(data).digest("base64");
 
 
-        searchOnDB(signature, function (results) {
-            if(results.length < 1)
+            const timestamp = receivedStamp.timestamp;
+
+            console.log("timeStamp: " + timestamp);
+
+            //calculate hash(hash + timestamp)
+            hashedData =  crypto.createHash('sha256').update(hashedData + timestamp).digest("base64");
+
+            console.log(receivedStamp.hash);
+            console.log("");
+            console.log(hashedData);
+            console.log("");
+            console.log(unsigned);
+            if(hashedData.toString() === unsigned)
             {
-                //forged stamp
+                callback(200,"OK matched");
             }
             else
             {
-                const timestamp = results[0]; //TODO need publickey
-                //calculate hash(hash + timestamp)
-                hashedData =  crypto.createHash('sha256').update(hashedData + timestamp).digest("base64");
-
-
-                if(hashedData === signed)
-                {
-                    //ok
-                }
-                else
-                {
-                    // modified file?
-                }
+                callback(403, "File and stamp dont match");
             }
-        })
+        }
+    })
 
 
 };
