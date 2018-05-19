@@ -14,7 +14,7 @@ class App extends Component {
         <Root>
           <Sidebar>
             <SidebarTitle>
-              <Link to='/'>D'CHAIN</Link>
+              <Link to='/import'>D'CHAIN</Link>
             </SidebarTitle>
             <Separator />
             <PlanMenu />

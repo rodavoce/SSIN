@@ -58,13 +58,13 @@ class Verify extends Component {
         })
             .then(res => {
                 if (res.ok) {
-                    this.props.dispatch(addMessage('File imported successfully', 'success'));
+                    this.props.dispatch(addMessage(res.statusText, 'success'));
                 } else {
-                    this.props.dispatch(addMessage('Error importing file', 'danger'));
+                    this.props.dispatch(addMessage(res.statusText, 'danger'));
                 }
             })
             .catch(err => {
-                this.props.dispatch(addMessage('Error importing file', 'danger'))
+                this.props.dispatch(addMessage('Error', 'danger'))
             });
     }
 
@@ -114,7 +114,7 @@ class Verify extends Component {
                             <small key={i} className="text-danger">{error}</small>
                         )}
                     </div>
-                    <input className="btn btn-primary" type="submit" onClick={this.handleSubmit} value="Import" />
+                    <input className="btn btn-primary" type="submit" onClick={this.handleSubmit} value="Verify" />
                 </form>
             </div>
         )

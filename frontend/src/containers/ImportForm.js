@@ -54,7 +54,7 @@ class ImportForm extends Component {
                     return response.json()
                 }
                 else {
-                    this.props.dispatch(addMessage('Error importing file', 'danger'));
+                    this.props.dispatch(addMessage('Error while timestamping the file', 'danger'));
                     throw new Error();
                 }
 
@@ -103,7 +103,7 @@ class ImportForm extends Component {
 	render() {
 		return (
 			<div>
-				<h3>Import a file</h3>
+				<h3>Timestamp file</h3>
 				<form method="post" encType="multipart/form-data" >
 					<div className="form-group" >
 						<input className="form-control-file" type="file" name="file" id="file" ref={input => this.fileInput = input} required />
@@ -111,7 +111,7 @@ class ImportForm extends Component {
 							<small key={i} className="text-danger">{error}</small>
 						)}
 					</div>
-                    <input className="btn btn-primary" type="submit" onClick={this.handleSubmit} value="Import" />
+                    <input className="btn btn-primary" type="submit" onClick={this.handleSubmit} value="Timestamp" />
 				</form>
 
 			</div>
